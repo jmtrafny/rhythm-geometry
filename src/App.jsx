@@ -93,7 +93,7 @@ export default function RhythmGeometryPrototype() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playhead, setPlayhead] = useState(-1);
   const [bpm, setBpm] = useState(120);
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const [accentDownbeat, setAccentDownbeat] = useState(true);
   const [subdivisionClick, setSubdivisionClick] = useState(true);
   const timerRef = useRef(null);
@@ -284,11 +284,7 @@ export default function RhythmGeometryPrototype() {
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Rhythm Geometry Prototype</h1>
-          <p className="text-slate-600 max-w-4xl">
-            An interactive sketch for exploring rhythm as geometry: click points on the circle, rotate patterns,
-            inspect interval structure, and hear the pulse cycle with downbeat and onset clicks.
-          </p>
+          <h1 className="text-3xl !text-black font-bold tracking-tight">Hi Colin :)</h1>
         </header>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
