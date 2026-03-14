@@ -92,12 +92,19 @@ export default function RhythmGeometryPrototype() {
   const [rotation, setRotation] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playhead, setPlayhead] = useState(-1);
-  const [bpm, setBpm] = useState(120);
+  const [bpm, setBpm] = useState(60);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [accentDownbeat, setAccentDownbeat] = useState(true);
   const [subdivisionClick, setSubdivisionClick] = useState(true);
+  const [subdivisionGain, setSubdivisionGain] = useState(0.015);
+  const [hitGain, setHitGain] = useState(0.18);
   const timerRef = useRef(null);
   const audioContextRef = useRef(null);
+  const audioParamsRef = useRef({ audioEnabled, accentDownbeat, subdivisionClick, subdivisionGain, hitGain });
+
+  useEffect(() => {
+    audioParamsRef.current = { audioEnabled, accentDownbeat, subdivisionClick, subdivisionGain, hitGain };
+  }, [audioEnabled, accentDownbeat, subdivisionClick, subdivisionGain, hitGain]);
 
   useEffect(() => {
     setSteps(selectedPreset.steps);
@@ -164,19 +171,20 @@ export default function RhythmGeometryPrototype() {
     return audioContextRef.current;
   };
 
-  const playStepSound = async (stepIndex) => {
-    if (!audioEnabled) return;
+  const playStepSound = async (stepIndex, currentHitSet) => {
+    const params = audioParamsRef.current;
+    if (!params.audioEnabled) return;
     const audioContext = await ensureAudioContext();
     if (!audioContext) return;
 
     const now = audioContext.currentTime + 0.005;
-    const isHit = hitSet.has(stepIndex);
+    const isHit = currentHitSet.has(stepIndex);
     const isDownbeat = stepIndex === 0;
 
-    if (subdivisionClick) {
+    if (params.subdivisionClick) {
       createClick(audioContext, now, {
-        frequency: isDownbeat && accentDownbeat ? 1200 : 800,
-        gain: isDownbeat && accentDownbeat ? 0.09 : 0.035,
+        frequency: isDownbeat && params.accentDownbeat ? 1200 : 800,
+        gain: isDownbeat && params.accentDownbeat ? params.subdivisionGain * 2.5 : params.subdivisionGain,
         duration: 0.03,
         type: "square",
       });
@@ -184,8 +192,8 @@ export default function RhythmGeometryPrototype() {
 
     if (isHit) {
       createClick(audioContext, now, {
-        frequency: isDownbeat && accentDownbeat ? 280 : 220,
-        gain: isDownbeat && accentDownbeat ? 0.22 : 0.14,
+        frequency: isDownbeat && params.accentDownbeat ? 280 : 220,
+        gain: isDownbeat && params.accentDownbeat ? params.hitGain * 1.4 : params.hitGain,
         duration: 0.08,
         type: "triangle",
       });
@@ -202,22 +210,21 @@ export default function RhythmGeometryPrototype() {
     const stepDurationMs = (60000 / bpm) / 4;
     let step = 0;
     setPlayhead(0);
-    playStepSound(0);
+    playStepSound(0, hitSet);
 
     timerRef.current = setInterval(() => {
       step = (step + 1) % steps;
       setPlayhead(step);
-      playStepSound(step);
+      playStepSound(step, hitSet);
     }, stepDurationMs);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [isPlaying, steps, bpm, audioEnabled, accentDownbeat, subdivisionClick, hitSet]);
+  }, [isPlaying, steps, bpm, hitSet]);
 
   const toggleStep = (index) => {
-    setPresetName("Custom");
     setHits((prev) => {
       const exists = prev.includes(index);
       if (exists) return prev.filter((h) => h !== index);
@@ -227,13 +234,11 @@ export default function RhythmGeometryPrototype() {
 
   const applyEuclidean = () => {
     const targetHits = Math.min(Math.max(hits.length || 1, 1), steps);
-    setPresetName("Custom");
     setHits(euclideanRhythm(steps, targetHits));
     setRotation(0);
   };
 
   const clearPattern = () => {
-    setPresetName("Custom");
     setHits([]);
     setRotation(0);
   };
@@ -244,14 +249,12 @@ export default function RhythmGeometryPrototype() {
     while (chosen.size < count) {
       chosen.add(Math.floor(Math.random() * steps));
     }
-    setPresetName("Custom");
     setHits([...chosen].sort((a, b) => a - b));
     setRotation(0);
   };
 
   const onHitsSliderChange = (value) => {
     const nextCount = Number(value);
-    setPresetName("Custom");
     if (nextCount === hits.length) return;
     if (nextCount < hits.length) {
       setHits((prev) => prev.slice(0, nextCount));
@@ -267,19 +270,6 @@ export default function RhythmGeometryPrototype() {
     setIsPlaying((v) => !v);
   };
 
-  const handleEnableAudio = async () => {
-    const audioContext = await ensureAudioContext();
-    if (audioContext) {
-      setAudioEnabled(true);
-      createClick(audioContext, audioContext.currentTime + 0.01, {
-        frequency: 660,
-        gain: 0.08,
-        duration: 0.05,
-        type: "triangle",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -292,7 +282,15 @@ export default function RhythmGeometryPrototype() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-xl font-semibold">Circular Rhythm View</h2>
-                <p className="text-sm text-slate-500">Pattern: {presetName}</p>
+                <select
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  className="mt-1 rounded-xl border px-3 py-1.5 bg-white text-sm"
+                >
+                  {[...presets.map((p) => p.name), ...(presetName === "Custom" ? ["Custom"] : [])].map((name) => (
+                    <option key={name}>{name}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -322,7 +320,7 @@ export default function RhythmGeometryPrototype() {
               </div>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center">
               <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
                 <circle cx={cx} cy={cy} r={radius} fill="none" stroke="currentColor" className="text-slate-300" strokeWidth="2" />
 
@@ -377,11 +375,69 @@ export default function RhythmGeometryPrototype() {
                       textAnchor="middle"
                       className="fill-slate-500 text-[10px]"
                     >
-                      {p.i}
+                      {p.i + 1}
                     </text>
                   </g>
                 ))}
               </svg>
+              <div className="mt-4 w-full max-w-sm space-y-3">
+                <label className="block">
+                  <div className="flex justify-between text-sm font-medium mb-1">
+                    <span>BPM</span>
+                    <span>{bpm}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="40"
+                    max="120"
+                    value={bpm}
+                    onChange={(e) => setBpm(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
+                <label className="block">
+                  <div className="flex justify-between text-sm font-medium mb-1">
+                    <span>Rotation</span>
+                    <span>{rotation}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={Math.max(steps - 1, 0)}
+                    value={rotation}
+                    onChange={(e) => setRotation(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
+                <label className="block">
+                  <div className="flex justify-between text-sm font-medium mb-1">
+                    <span>Pulses</span>
+                    <span>{steps}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="4"
+                    max="24"
+                    value={steps}
+                    onChange={(e) => setSteps(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
+                <label className="block">
+                  <div className="flex justify-between text-sm font-medium mb-1">
+                    <span>Hits</span>
+                    <span>{hits.length}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={steps}
+                    value={Math.min(hits.length, steps)}
+                    onChange={(e) => onHitsSliderChange(e.target.value)}
+                    className="w-full"
+                  />
+                </label>
+              </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-sm">
@@ -413,124 +469,52 @@ export default function RhythmGeometryPrototype() {
           </section>
 
           <aside className="bg-white rounded-3xl shadow-sm border p-6 space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold">Controls</h2>
-              <p className="text-sm text-slate-500">You can now hear both the pulse and the active onsets.</p>
-            </div>
-
-            <div className="space-y-4">
-              <label className="block">
-                <div className="text-sm font-medium mb-1">Preset</div>
-                <select
-                  value={presetName}
-                  onChange={(e) => setPresetName(e.target.value)}
-                  className="w-full rounded-xl border px-3 py-2 bg-white"
-                >
-                  {[...presets.map((p) => p.name), ...(presetName === "Custom" ? ["Custom"] : [])].map((name) => (
-                    <option key={name}>{name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <div className="flex justify-between text-sm font-medium mb-1">
-                  <span>Pulses</span>
-                  <span>{steps}</span>
-                </div>
-                <input
-                  type="range"
-                  min="4"
-                  max="24"
-                  value={steps}
-                  onChange={(e) => setSteps(Number(e.target.value))}
-                  className="w-full"
-                />
-              </label>
-
-              <label className="block">
-                <div className="flex justify-between text-sm font-medium mb-1">
-                  <span>Hits</span>
-                  <span>{hits.length}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max={steps}
-                  value={Math.min(hits.length, steps)}
-                  onChange={(e) => onHitsSliderChange(e.target.value)}
-                  className="w-full"
-                />
-              </label>
-
-              <label className="block">
-                <div className="flex justify-between text-sm font-medium mb-1">
-                  <span>Rotation</span>
-                  <span>{rotation}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max={Math.max(steps - 1, 0)}
-                  value={rotation}
-                  onChange={(e) => setRotation(Number(e.target.value))}
-                  className="w-full"
-                />
-              </label>
-
-              <label className="block">
-                <div className="flex justify-between text-sm font-medium mb-1">
-                  <span>BPM</span>
-                  <span>{bpm}</span>
-                </div>
-                <input
-                  type="range"
-                  min="40"
-                  max="220"
-                  value={bpm}
-                  onChange={(e) => setBpm(Number(e.target.value))}
-                  className="w-full"
-                />
-              </label>
-            </div>
-
             <div className="rounded-2xl bg-slate-50 border p-4 space-y-3">
               <h3 className="font-semibold">Audio</h3>
               <div className="space-y-3 text-sm text-slate-700">
-                <button
-                  onClick={handleEnableAudio}
-                  disabled={audioEnabled}
-                  className="w-full rounded-2xl border px-4 py-2 font-medium hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {audioEnabled ? "Audio enabled" : "Enable audio"}
-                </button>
                 <label className="flex items-center justify-between gap-3">
-                  <span>Accent step 0</span>
+                  <span>Audio enabled</span>
+                  <input type="checkbox" checked={audioEnabled} onChange={(e) => setAudioEnabled(e.target.checked)} />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>Accent beat 1</span>
                   <input type="checkbox" checked={accentDownbeat} onChange={(e) => setAccentDownbeat(e.target.checked)} />
                 </label>
                 <label className="flex items-center justify-between gap-3">
                   <span>Subdivision click</span>
                   <input type="checkbox" checked={subdivisionClick} onChange={(e) => setSubdivisionClick(e.target.checked)} />
                 </label>
+                <label className="block">
+                  <div className="flex justify-between mb-1">
+                    <span>Subdivision volume</span>
+                    <span>{Math.round(subdivisionGain * 1000)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="0.05"
+                    step="0.001"
+                    value={subdivisionGain}
+                    onChange={(e) => setSubdivisionGain(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
+                <label className="block">
+                  <div className="flex justify-between mb-1">
+                    <span>Hit volume</span>
+                    <span>{Math.round(hitGain * 1000)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="0.4"
+                    step="0.01"
+                    value={hitGain}
+                    onChange={(e) => setHitGain(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </label>
               </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 border p-4 space-y-3">
-              <h3 className="font-semibold">Reading panel</h3>
-              <div className="text-sm text-slate-600 space-y-2">
-                <p><span className="font-medium text-slate-800">Pulse:</span> the higher click marks each subdivision moving around the ring.</p>
-                <p><span className="font-medium text-slate-800">Onsets:</span> active vertices add a lower click when struck.</p>
-                <p><span className="font-medium text-slate-800">Downbeat:</span> step 0 gets a stronger accent when enabled.</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 border p-4">
-              <h3 className="font-semibold mb-2">Ideas for the next pass</h3>
-              <ul className="text-sm text-slate-600 space-y-2 list-disc pl-5">
-                <li>Add separate sounds for kick, snare, and rim-like layers</li>
-                <li>Support multiple concentric rings for polyrhythms</li>
-                <li>Show maximally even detection and Euclidean labels</li>
-                <li>Export SVG or PNG for whiteboard-style study sheets</li>
-              </ul>
             </div>
           </aside>
         </div>
