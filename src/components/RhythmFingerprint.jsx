@@ -267,7 +267,7 @@ function IntervalSpectrum({ rings, size = 120 }) {
 /**
  * Phase Spiral - shows rhythm unfolding as an outward spiral
  */
-function PhaseSpiral({ rings, masterSteps, size = 120 }) {
+function PhaseSpiral({ rings, masterSteps, size = 120, playhead = -1 }) {
   const cx = size / 2;
   const cy = size / 2;
   const maxRadius = size * 0.42;
@@ -432,43 +432,11 @@ export default function RhythmFingerprint({
   children, // Optional: render prop or element for the main rings visualization
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [touchStartY, setTouchStartY] = useState(0);
 
   const activeRings = useMemo(
     () => rings.filter((r) => r.visible && !r.muted),
     [rings]
   );
-
-  // Touch gesture handlers
-  const handleTouchStart = (e) => {
-    setTouchStartX(e.touches[0].clientX);
-    setTouchStartY(e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!touchStartX || !touchStartY) return;
-
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-    const minSwipeDistance = 50;
-
-    // Horizontal swipe detection (prioritize over vertical)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-      if (deltaX > 0) {
-        // Swipe right - go to previous
-        goPrev();
-      } else {
-        // Swipe left - go to next
-        goNext();
-      }
-    }
-
-    setTouchStartX(0);
-    setTouchStartY(0);
-  };
 
   const goNext = () => {
     setCurrentIndex((i) => (i + 1) % VISUALIZATIONS.length);
@@ -546,45 +514,49 @@ export default function RhythmFingerprint({
   };
 
   return (
-    <div 
-      className="flex flex-col items-center"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      style={{ touchAction: 'pan-y pinch-zoom' }}
-    >
-      {/* Visualization */}
-      <div className="flex justify-center mb-4">
-        {renderVisualization()}
-      </div>
-
-      {/* Navigation controls */}
-      <div className="flex items-center justify-center gap-4 w-full max-w-md">
+    <div className="flex flex-col items-center">
+      {/* Navigation and visualization */}
+      <div className="flex items-center gap-2 w-full">
         <button
           onClick={goPrev}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 hover:bg-white hover:border-slate-300 text-slate-600 hover:text-slate-800 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 hover:bg-white hover:border-slate-300 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
           title="Previous visualization"
         >
-          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M8 2L4 6L8 10" />
           </svg>
-          <span className="text-sm font-medium">Prev</span>
         </button>
 
-        <div className="text-center min-w-0 flex-1">
-          <div className="text-lg font-semibold text-slate-700">{current.name}</div>
-          <div className="text-sm text-slate-500">{current.description}</div>
+        <div className="flex-1 flex justify-center">
+          {renderVisualization()}
         </div>
 
         <button
           onClick={goNext}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 hover:bg-white hover:border-slate-300 text-slate-600 hover:text-slate-800 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 hover:bg-white hover:border-slate-300 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
           title="Next visualization"
         >
-          <span className="text-sm font-medium">Next</span>
-          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M4 2L8 6L4 10" />
           </svg>
         </button>
+      </div>
+
+      {/* Label and dots */}
+      <div className="mt-2 text-center">
+        <div className="text-sm font-medium text-slate-600">{current.name}</div>
+        <div className="flex justify-center gap-1.5 mt-1.5">
+          {VISUALIZATIONS.map((v, i) => (
+            <button
+              key={v.id}
+              onClick={() => setCurrentIndex(i)}
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                i === currentIndex ? 'bg-slate-500' : 'bg-slate-300 hover:bg-slate-400'
+              }`}
+              title={v.name}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

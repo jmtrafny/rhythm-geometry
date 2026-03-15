@@ -65,7 +65,6 @@ const COLOR_SCHEMES = {
  * @prop {number} cy - Center Y coordinate
  * @prop {number} playhead - Current step being played (-1 if not playing)
  * @prop {function} onToggleStep - Callback when step is clicked
- * @prop {function} onSelectRing - Callback when ring is tapped/clicked (for selection)
  * @prop {string} color - Color scheme name
  * @prop {boolean} showLabels - Whether to show step numbers
  * @prop {boolean} showSpokes - Whether to show spoke lines to center
@@ -82,7 +81,6 @@ export default function RhythmRing({
   cy,
   playhead = -1,
   onToggleStep,
-  onSelectRing,
   color = 'slate',
   showLabels = false,
   showSpokes = false,
@@ -118,8 +116,6 @@ export default function RhythmRing({
         stroke="currentColor"
         className={colors.ring}
         strokeWidth={selected ? 3 : 2}
-        onClick={onSelectRing}
-        style={{ cursor: onSelectRing ? 'pointer' : 'default' }}
       />
 
       {/* Spokes (optional - usually only for outermost ring) */}
