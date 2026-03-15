@@ -56,22 +56,44 @@ Rings nested inside each other, sharing the same center point.
     ╰──────────╯
 ```
 
-### 2. Consecutive Rings (TODO)
-Rings arranged in a horizontal timeline or spiral, showing the pattern unfolding over multiple cycles.
-- Great for seeing how patterns evolve over time
-- Shows phase relationships across repetitions
-- Good for teaching form/structure
+### 2. Consecutive Rings - Möbius Strip
+
+A Möbius strip visualization where the rhythm surface twists, revealing the next cycle as the playhead passes each beat.
 
 ```
-  ○───○───○───○───○
- Ring1 Ring2 Ring3 ...
+        ╭───────────────╮
+       ╱  ●   ○   ●   ○  ╲        ← Current cycle (top surface)
+      │                    │
+      │    THE TWIST       │      ← Playhead crosses here
+      │                    │
+       ╲  ○   ●   ○   ●  ╱        ← Next cycle (flipped, becoming visible)
+        ╰───────────────╯
 ```
 
-Possible layouts:
-- **Linear**: Rings scroll horizontally like a timeline
-- **Spiral**: Rings wrap around in a larger spiral
-- **Helix**: 3D-style perspective spiral
-- **Grid**: Rings arranged in rows/columns
+**How it works:**
+- The strip has two "sides" that are actually one continuous surface
+- As the metronome arm sweeps, beats flip from "upcoming" to "played"
+- The twist occurs at the playhead position
+- You always see ~half of the current cycle and ~half of the next
+- Creates a sense of continuous flow, not discrete loops
+
+**Visual states for each beat:**
+1. **Upcoming (next cycle)** - Subtle, waiting on the "underside"
+2. **Approaching** - Rotating into view as playhead nears
+3. **NOW** - At the twist point, fully visible, highlighted
+4. **Just played** - Rotating away, fading
+5. **Past** - On the "underside" again, becoming next cycle
+
+**Implementation ideas:**
+- 3D CSS transforms for the twist effect
+- Or 2D approximation with opacity/scale transitions
+- The "twist" creates anticipation - you see what's coming
+- Perfect for teaching: "watch for that next hit..."
+
+**Variations:**
+- **Single ring Möbius**: One rhythm looping infinitely
+- **Multi-ring helix**: Multiple rings as parallel strips, offset
+- **Phase Möbius**: Show the same pattern at different rotations
 
 ---
 
