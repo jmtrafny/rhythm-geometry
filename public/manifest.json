@@ -1,0 +1,17 @@
+{
+  "name": "Rhythm Geometry",
+  "short_name": "RhythmGeo",
+  "description": "Interactive polyrhythm visualizer - explore rhythms through geometry",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#64748b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
