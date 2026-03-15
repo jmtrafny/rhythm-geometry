@@ -13,6 +13,7 @@ import {
 } from "./lib/rhythmMath";
 import { concentricRadius } from "./lib/rhythmGeometry";
 import RhythmRing, { COLOR_SCHEMES } from "./components/RhythmRing";
+import RhythmFingerprint from "./components/RhythmFingerprint";
 import sampleManager, { playSound, preloadSamples } from "./lib/audioEngine";
 
 const RING_COLORS = Object.keys(COLOR_SCHEMES);
@@ -263,11 +264,11 @@ export default function RhythmGeometryPrototype() {
         </header>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Main visualization */}
+          {/* Main visualization carousel */}
           <section className="xl:col-span-2 bg-white rounded-3xl shadow-sm border p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-xl font-semibold">Circular Rhythm View</h2>
+                <h2 className="text-xl font-semibold">La Clave</h2>
                 <p className="text-sm text-slate-500">
                   {rings.length} ring{rings.length !== 1 ? "s" : ""} · Master grid: {masterSteps} steps
                 </p>
@@ -304,38 +305,46 @@ export default function RhythmGeometryPrototype() {
             </div>
 
             <div className="flex flex-col items-center">
-              <svg
-                width={size}
-                height={size}
-                viewBox={`0 0 ${size} ${size}`}
-                className="overflow-visible"
+              <RhythmFingerprint
+                rings={rings}
+                masterSteps={masterSteps}
+                playhead={isPlaying ? masterStep : -1}
+                mode="carousel"
+                size={180}
               >
-                {/* Render rings from outermost to innermost */}
-                {rings
-                  .filter((r) => r.visible)
-                  .map((ring, index) => {
-                    const ringStep = masterToRingStep(masterStep, ring.steps, masterSteps);
-                    return (
-                      <RhythmRing
-                        key={ring.id}
-                        id={ring.id}
-                        steps={ring.steps}
-                        hits={ring.hits}
-                        rotation={ring.rotation}
-                        radius={concentricRadius(index, BASE_RADIUS, RING_GAP)}
-                        cx={cx}
-                        cy={cy}
-                        playhead={isPlaying ? ringStep : -1}
-                        onToggleStep={ring.id === selectedRingId ? toggleStep : undefined}
-                        color={ring.color}
-                        showLabels={index === 0}
-                        showSpokes={index === 0}
-                        muted={ring.muted}
-                        selected={ring.id === selectedRingId}
-                      />
-                    );
-                  })}
-              </svg>
+                {/* Main rings visualization as first carousel card */}
+                <svg
+                  width={size}
+                  height={size}
+                  viewBox={`0 0 ${size} ${size}`}
+                  className="overflow-visible"
+                >
+                  {rings
+                    .filter((r) => r.visible)
+                    .map((ring, index) => {
+                      const ringStep = masterToRingStep(masterStep, ring.steps, masterSteps);
+                      return (
+                        <RhythmRing
+                          key={ring.id}
+                          id={ring.id}
+                          steps={ring.steps}
+                          hits={ring.hits}
+                          rotation={ring.rotation}
+                          radius={concentricRadius(index, BASE_RADIUS, RING_GAP)}
+                          cx={cx}
+                          cy={cy}
+                          playhead={isPlaying ? ringStep : -1}
+                          onToggleStep={ring.id === selectedRingId ? toggleStep : undefined}
+                          color={ring.color}
+                          showLabels={index === 0}
+                          showSpokes={index === 0}
+                          muted={ring.muted}
+                          selected={ring.id === selectedRingId}
+                        />
+                      );
+                    })}
+                </svg>
+              </RhythmFingerprint>
 
               {/* Transport controls */}
               <div className="mt-4 w-full max-w-sm space-y-3">
@@ -603,6 +612,7 @@ export default function RhythmGeometryPrototype() {
                 </div>
               </div>
             </div>
+
           </aside>
         </div>
       </div>
