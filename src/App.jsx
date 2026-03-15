@@ -20,6 +20,16 @@ const SOUNDS = ["clave", "bell", "kick", "snare", "rim"];
 const BASE_RADIUS = 145;
 const RING_GAP = 32;
 
+// Tailwind color values for ring indicators (matching COLOR_SCHEMES)
+const COLOR_VALUES = {
+  slate: "#64748b",
+  blue: "#3b82f6",
+  emerald: "#10b981",
+  amber: "#f59e0b",
+  rose: "#f43f5e",
+  purple: "#a855f7",
+};
+
 function createRing(preset, index = 0) {
   return {
     id: `ring-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -390,45 +400,62 @@ export default function RhythmGeometryPrototype() {
               </div>
 
               <div className="space-y-2">
-                {rings.map((ring) => (
-                  <div
-                    key={ring.id}
-                    className={`flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-colors
-                      ${selectedRingId === ring.id ? "bg-white border-slate-400" : "hover:bg-white"}`}
-                    onClick={() => setSelectedRingId(ring.id)}
-                  >
-                    <span
-                      className={`w-3 h-3 rounded-full`}
+                {rings.map((ring) => {
+                  const isSelected = selectedRingId === ring.id;
+                  const ringColor = COLOR_VALUES[ring.color] || COLOR_VALUES.slate;
+                  return (
+                    <div
+                      key={ring.id}
+                      className={`flex items-center gap-2 p-2 rounded-xl border-2 cursor-pointer transition-all
+                        ${isSelected
+                          ? "bg-white shadow-md"
+                          : "border-transparent hover:bg-white hover:border-slate-200"}`}
                       style={{
-                        backgroundColor: `var(--tw-${ring.color}-500, #64748b)`,
-                        opacity: ring.muted ? 0.3 : 1,
+                        borderColor: isSelected ? ringColor : undefined,
                       }}
-                    />
-                    <span className="flex-1 text-sm truncate">{ring.name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateRing(ring.id, { muted: !ring.muted });
-                      }}
-                      className="text-xs opacity-60 hover:opacity-100 px-1"
-                      title={ring.muted ? "Unmute" : "Mute"}
+                      onClick={() => setSelectedRingId(ring.id)}
                     >
-                      {ring.muted ? "🔇" : "🔊"}
-                    </button>
-                    {rings.length > 1 && (
+                      <span
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: ringColor,
+                          opacity: ring.muted ? 0.3 : 1,
+                        }}
+                      />
+                      <span
+                        className="flex-1 text-sm truncate font-medium"
+                        style={{
+                          color: isSelected ? ringColor : undefined,
+                          opacity: ring.muted ? 0.5 : 1,
+                        }}
+                      >
+                        {ring.name}
+                      </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeRing(ring.id);
+                          updateRing(ring.id, { muted: !ring.muted });
                         }}
                         className="text-xs opacity-60 hover:opacity-100 px-1"
-                        title="Remove ring"
+                        title={ring.muted ? "Unmute" : "Mute"}
                       >
-                        ✕
+                        {ring.muted ? "🔇" : "🔊"}
                       </button>
-                    )}
-                  </div>
-                ))}
+                      {rings.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeRing(ring.id);
+                          }}
+                          className="text-xs opacity-60 hover:opacity-100 px-1"
+                          title="Remove ring"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
