@@ -411,6 +411,84 @@ function BinaryRing({ rings, masterSteps, size = 120 }) {
   );
 }
 
+/**
+ * Clave Pattern - binary rhythm code visualization
+ */
+function ClavePattern({ rings, masterSteps, size = 120, playhead = -1 }) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size * 0.4;
+
+  const activeRings = rings.filter(r => r.visible && !r.muted);
+
+  if (activeRings.length === 0) return null;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* Background circle */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill="none"
+        stroke="#e2e8f0"
+        strokeWidth={1}
+      />
+
+      {/* Binary pattern for each ring */}
+      {activeRings.map((ring, ringIndex) => {
+        const rotatedHits = rotateHits(ring.hits, ring.steps, ring.rotation);
+        const angleStep = (Math.PI * 2) / masterSteps;
+        const ringRadius = radius * (0.9 - ringIndex * 0.15);
+
+        return rotatedHits.map((hit) => {
+          // Map ring step to master step
+          const ratio = masterSteps / ring.steps;
+          const masterStep = Math.floor(hit * ratio) % masterSteps;
+          const angle = -Math.PI / 2 + masterStep * angleStep;
+          const x = cx + Math.cos(angle) * ringRadius;
+          const y = cy + Math.sin(angle) * ringRadius;
+
+          return (
+            <circle
+              key={`${ring.id}-${hit}`}
+              cx={x}
+              cy={y}
+              r={3}
+              fill={COLOR_VALUES[ring.color] || '#3b82f6'}
+              opacity={0.8}
+            />
+          );
+        });
+      })}
+
+      {/* Playhead */}
+      {playhead >= 0 && (
+        <line
+          x1={cx}
+          y1={cy}
+          x2={cx + Math.cos(-Math.PI / 2 + playhead * (Math.PI * 2) / masterSteps) * radius}
+          y2={cy + Math.sin(-Math.PI / 2 + playhead * (Math.PI * 2) / masterSteps) * radius}
+          stroke="#f43f5e"
+          strokeWidth={2}
+          opacity={0.7}
+        />
+      )}
+
+      {/* Center label */}
+      <text
+        x={cx}
+        y={cy + 4}
+        textAnchor="middle"
+        className="fill-slate-600"
+        style={{ fontSize: '10px', fontWeight: 'bold' }}
+      >
+        CLAVE
+      </text>
+    </svg>
+  );
+}
+
 // Visualization modes for carousel
 const VISUALIZATIONS = [
   { id: 'rings', name: 'Rings', description: 'Concentric rhythm rings' },
@@ -418,6 +496,7 @@ const VISUALIZATIONS = [
   { id: 'spectrum', name: 'Spectrum', description: 'Interval distribution' },
   { id: 'spiral', name: 'Spiral', description: 'Pattern unfolding over time' },
   { id: 'binary', name: 'Density', description: 'Stacked hit positions' },
+  { id: 'clave', name: 'Clave', description: 'Binary rhythm code' },
 ];
 
 /**
@@ -499,6 +578,9 @@ export default function RhythmFingerprint({
   if (mode === 'binary') {
     return <BinaryRing rings={rings} masterSteps={masterSteps} size={size} />;
   }
+  if (mode === 'clave') {
+    return <ClavePattern rings={rings} masterSteps={masterSteps} size={size} playhead={playhead} />;
+  }
 
   // Grid mode - show all visualizations
   if (mode === 'all') {
@@ -520,13 +602,16 @@ export default function RhythmFingerprint({
           <BinaryRing rings={rings} masterSteps={masterSteps} size={size} />
           <span className="text-xs text-slate-400 mt-1">Density</span>
         </div>
+        <div className="flex flex-col items-center">
+          <ClavePattern rings={rings} masterSteps={masterSteps} size={size} playhead={playhead} />
+          <span className="text-xs text-slate-400 mt-1">Clave</span>
+        </div>
       </div>
     );
   }
 
   // Carousel mode (default)
   const current = VISUALIZATIONS[currentIndex];
-  const carouselSize = size * 1.8; // Larger size for single view
 
   const renderVisualization = () => {
     switch (current.id) {
@@ -540,20 +625,25 @@ export default function RhythmFingerprint({
         return <PhaseSpiral rings={rings} masterSteps={masterSteps} size={carouselSize} playhead={playhead} />;
       case 'binary':
         return <BinaryRing rings={rings} masterSteps={masterSteps} size={carouselSize} />;
+      case 'clave':
+        return <ClavePattern rings={rings} masterSteps={masterSteps} size={carouselSize} playhead={playhead} />;
       default:
         return null;
     }
   };
+
+  const carouselSize = size * 1.8; // Larger size for single view
+  const containerMinHeight = carouselSize + 120; // Keep controls anchored
 
   return (
     <div 
       className="flex flex-col items-center"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      style={{ touchAction: 'pan-y pinch-zoom' }}
+      style={{ touchAction: 'pan-y pinch-zoom', minHeight: containerMinHeight }}
     >
       {/* Visualization */}
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-4" style={{ minHeight: carouselSize, height: carouselSize, alignItems: 'center' }}>
         {renderVisualization()}
       </div>
 
